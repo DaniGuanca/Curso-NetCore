@@ -1,0 +1,2286 @@
+El metodo main en el  Program.cs es el punto de entrada de la aplicacion como en las aplicaciones de consola
+    public static void Main(string[] args)
+    {
+        CreateHostBuilder(args).Build().Run();
+    }
+
+
+En el las clase Startup.cs si deseo acceder en algun momento a las configuraciones de appsettings.json tengo que agregar las siguientes
+lineas en la calse:
+    //Esta lineas las agrego por si necesito acceder a la configracion que esta en appsettings.json
+        private IConfiguration _configuration;
+
+        public Startup(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+
+
+ARCHIVOS ESTATICOS
+Los archivos estaticos como js css y librerias van en la raiz web. La raiz web es simplemente una carpeta que se crea en el proyecto
+con el nombre wwwroot y adentro ya se puede poner cualquier archivo estatico o hacer subcarpetas tipo css, js o images.
+La ruta de acceso es con una imagen de ejemplo es la siguiente: "~/images/MyImage.jpg". El ~/ hace referencia a la raiz web
+
+Para dar acceso a la carpeta wwwroot en el Configure del Startup.cs hay que agregar su use:
+    app.UsesStaticFiles();
+
+
+Si por alguna razon quiero agregar otra carpeta de archivos estaticos fuera de la raiz web hay que sobrecargar el metodo UseStaticFiles
+en la funcion Configure de la clase Startup.cs asi:
+    app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(
+                Path.Combine(env.ContentRootPath, "MyStaticFiles")),
+            RequestPath = "/StaticFiles"
+        });
+
+Esta sobrecarga me permite crear una nueva carpeta de archivos estaticos que este en /StaticFiles. Entonce si quiero acceder desde un html
+a algun archivo de ahi la ruta de esa nueva carpeta es "~/StaticFiles/images/red-rose.jpg"
+
+Para que la aplicacion ejecute autoatimacente los archivos predeterminados que haya en wwwroot se pone en Configure de startup.cs:
+    app.UseDefaultFiles();
+
+Y los usa en el siguiente orde:
+    default.htm
+    default.html
+    index.htm
+    index.html
+
+
+Si quiero agregar otra pagina html que no sea default o index para que cargue de forma predeterminada
+tengo que crear una instancia de DefaultFilesOptions y con DefaultFilesName y su metodo Clear() borro todas las instancias que tenia(index, default)
+y con Add() agrego las instancia que yo quiera
+
+    DefaultFilesOptions d = new DefaultFilesOptions();
+    d.DefaultFileNames.Clear();
+    d.DefaultFileNames.Add("nodefault.html");
+
+    Y por ultimo a useDefaultFiles le mando la variable de DefaultFilesOPtions
+    app.UseDefaultFiles(d);
+
+
+
+VARIABLES DE ENTORNO
+ Son para manejar los distintos entornos en los que podemos estar, ya sea desarrollo (donde programamos) staging(de pruebas) 
+ o produccion (version para clientes). Se lo configura en el launchSettings.json. Si no hay ningun valor por defecto es produccion.
+ Hay que cerrar y volver el VS al hacer esos cambios
+
+
+
+MVC
+ La teoria es bastante parecida a la del curso de POO con PHP de Jon asi que me fijo ahi
+
+ Para elegir la arquitectura MVC en el metodo public void ConfigureServices(IServiceCollection services) de la clase Startup.cs
+ tengo que incluir el comando:
+    services.AddMvc();
+
+O sino el mejor y nuevo MVC CORE:
+    services.AddMvcCore();
+    PERO ESO YA NO SIRVE A PARTIR DEL NET 3.1, ASI QUE AGREGO LO SIGUIENTE
+    services.AddMvc(options => options.EnableEndpointRouting = false);
+
+Luego debajo del useStaticFiles() en el metodo Configure llamo al ruteo usando mvc con:
+    app.UseMvcWithDefaultRoute(); 
+
+Hay que crear el controlador que diga la ruta por defecto a ejecutar
+
+Los controladores se hacen en una carpeta raiz llamada Controllers y el controlador por defecto tiene que ser una clase con el nombre
+HomeController.cs
+
+Si quiero usar MVC Core en vez del comun entonces en ves de decir services.AddMvc(); digo: 
+    
+    services.AddMvc(options => options.EnableEndpointRouting = false);
+
+
+****************************************************************************************
+JsonResult es un tipo para metodos que lo que hace es devolver un objeto en formato Json
+****************************************************************************************
+
+MVC VS MVC Core: En teoria el MVC Core no puede mostrar Json. El addMvc tiene mas funcionalidades y librerias.
+AddMvc parece que ya llama dentro al MvcCore
+
+
+
+MODELS
+En la carpeta Models tienen que ir todos los modelos
+
+
+************INTERFAZ Y SINGLETON*********************************************************************************************
+services.AddSingleton<interfaz, clase que la implementa a elegir>();
+ 
+ Lo que hace es crear la instancia de la interfaz entonces cada vez que se use un objeto interfaz solo automaticamente
+ va a usar la clase que elegimos.
+ Por lo que lei en documentacion no es muy recomendable usar
+ ***************************************************************************************************************************
+
+
+
+LLAMADA A VISTAS DESDE EL CONTROLADOR
+Para llamar a las vistas desde el controlador con metodos usando el tipo ViewResult y retornando  un objeto View
+Ej:
+    public ViewResult Details ()
+    {
+        Amigo modelo = amigoAlmacen.dameDatosAmigo(1);
+        return View(modelo);
+    }
+
+El nombre del metodo se debe corresponder con el nombre del archivo .cshtml
+
+LAS VISTAS DEBEN IR DENTRO DE LA CARPETA Views
+
+Si quiero usar otras vistas que no son de la carpeta predetrminada puedo hacerlo mandando la url relativa con ~
+    public ViewResult Index()
+    {
+        Amigo modelo = amigoAlmacen.dameDatosAmigo(2);
+        //Aca en View le digo la direccion del html que quiero mostrar
+        return View("~/MisVistas/index.cshtml");
+    }
+
+
+
+PASAR DATOS DEL CONTROLADOR A LA VISTA
+
+1°METODO ViewData
+    Para mandar datos del controlador a la vista lo hago con ViewData
+    se manda asi: ViewData["Nombre del dato"] = valor;
+    Entonces desde la vista lo agarro con Nombre del dato
+    Ej. Mando un titulo
+        ViewData["Cabecera"] = "Lista de Amigos";
+    
+        //Y mando un objeto
+        ViewData["Amigo"] = amigo;
+
+    Desde la vista lo agarro asi usando codigo c# con @:
+        <body>
+            <h3>@ViewData["Cabecera"]</h3>
+        </body>
+
+2° METODO ViewBag
+    Es parecido a ViewData pero acá es ViewBag.NombreDato = valor;
+        ViewBag.Titulo = "Lista de Amigos ViewBag";
+
+        ViewBag.Amigo = amigo;
+
+    Para obtenerlo desde la vista es: ViewBag.NombreDato
+
+
+3° METODO Y MAS USADO: Uso de modelos y vistas fuertemente tipadas
+    Para hacer esto, primero en la vista en la primer linea se llama al modelo como si fuera un using por ejemplo asi:
+        @model Ejemplo1.Models.Amigo
+
+    Luego desde el controlador cuando devuelvo la vista con return View() hay que mandarle el objeto como argumento:
+        return View(amigo);
+
+    Para acceder desde la vista simplemente se entra con model o la palabra que usamos al tope:
+        @Model.Propiedad;
+
+**********************************************************************************************************************************
+VIEW MODEL SE UTILIZA PARA MANDAR OBJETOS PERSONALIZADOS
+Se utiliza cuando necesitamos ciertos valores o propiedades que el objeto que mandamos no lo tiene. Entonces la solucion es crear un objeto
+personalizado con las propiedades que necesitemos.
+Para hacerlo se crea una carpeta con el nombre ViewModels y dentro la clase personalizada, esta bueno tambien que el nombre de la clase
+personalizada sea NombreDeClaseView.cs o NombreDeClaseViewModel.cs 
+En este ejemplo del curso hice el DetailsView.cs y en el homeController.cs lo mando a la vista
+
+NO HACE FALTA HACER EL CONSTRUCTOR VACIO DE UNA CLASE, YA ESTA POR DEFECTO!!
+
+
+*****************************************************************************************************************************************
+LISTVIEW
+
+IMPORTANTE!!!!!!!!!!!!!!!!!!
+SI QUIERO UNA LISTA DE ALGUN OBJETO EN UNA VISTA USANDO EL METODO DE VISTA FUERTEMENTE TIPADA, VEZ DEL USING O @MODEL SE TIENE QUE HACER
+UNA LISTA DE EL ASI:
+    @model List<Ejemplo1.Models.Amigo>
+
+    Y asi lo mostraria en la vista:
+         <table>
+            <tr>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Ciudad</th>
+            </tr>
+            <tr>
+                @foreach (var amigo in Model)
+                {
+                <tr>
+                    <td>@amigo.Id</td>
+                    <td>@amigo.Nombre</td>
+                    <td>@amigo.Email</td>
+                    <td>@amigo.Ciudad</td>
+                </tr>
+                }
+            </tr>
+        </table>
+
+******************************************************************************************************************************************
+LAYOUT VIEW O VISTA DE DISEÑO
+Es como en django que muestro la cabecera y el footer para todos y adentro el body va cambiando entre paginas dinamicamente.
+Es como la MasterPage del .NET viejo
+Se las ponen en una carpeta llamada Shared dentro de Views y creamos un elemento razor layout.
+Para usarla en una vista simplente abro etiqueta de codigo y la llamo con Layout = "ruta del layout"; como el ejemplo:
+    @{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Amigos Detalles";
+ }
+El layout viene con un Viebag.Tittle en el titulo por le asigno el avalor ahi.
+
+AHORA SI QUIERO MOSTRAR LOS JS PARA SOLO ALGUNAS PAGINAS ES ASI:
+    Al layout tengo que agregarle un RenderSection("NombreCualquiera", required: false)
+    El nombre es el que se va a usar en alguna vista que si quiera usar el script y el required false es para que algunas vistas puedan
+    tenerlo y otras no.
+    Lo que hace es renderizar esa Section para incluirla en el vista que desee. Desde la vista simplente llamo a esa seccion con
+    @section NombreQueLePuse { COSAS QUE QUIERO MOSTRAR }. Por ejemplo:
+
+    En el layout:
+    @RenderSection("Scripts",required:false)
+
+    En la vista que quiero mostrar un script:
+    @section Scripts
+    {
+        <script src="~/js/MiScript.js"></script>
+    }
+
+*******************************************************************************************************************************************
+ARCHIVOS _ViewStart.cshtml y _ViewImports.cshtml
+
+#El archivo _ViewStart.cshtml 
+    Cumple la misma funcion que el layout pero con la diferencia que con viewstart no hace falta hacer la 
+    referencia ni la importacion en la vista que quieramos usarla y asi evitamos codigo redundante
+    Para crearla simplemente agrego un elemento razor view start
+
+    Lo que genera ese elemento es lo siguiente:
+        @{
+            Layout = "_Layout";
+        }
+    Que es importacion del _Layout.cs, esto va a cargar automaticamente en todas mis vistas el _Layout.cshtml por lo que puedo ir a cada 
+    vista y borrar la importacion que tenia antes porque es redundante ahora que hice el viewstart, por lo que la parte de importacion de la
+    vista details va a quedar:
+        
+            @{
+                ViewBag.Title = "Amigos Detalles";
+            }
+
+    Y la parte de importacion del a vista index va a quedar:
+
+        @{
+            ViewBag.Title = "Amigos Indice";
+        }
+
+    Es decir que saque de ambas vista esto:     Layout = "~/Views/Shared/_Layout.cshtml"; que ya no hace falta porque el viewstart lo hace
+
+
+#EL ARCHIVO _ViewImport.cshtml
+    Se usa para hacer las importaciones mas comunes asi no hay que repetirlas en cada vista. Se crea en view un elemento razor view import
+    
+    En mi ejemplo de codigo a mi view import le pongo estos using:
+        @using Ejemplo1.ViewModels;
+        @using Ejemplo1.Models;
+
+    Entonces en la vista details en la parte de arriba de importacion pasa de esto: @model Ejemplo1.ViewModels.DetailsView
+    a esto: @model DetailsView
+
+    Y mi vista index en su parte de importacion pasa de esto: @model List<Ejemplo1.Models.Amigo>
+    a esto: @model List<Amigo>
+
+*******************************************************************************************************************************************
+EL ENRUTAMIENTO
+El enrutamiento lo hace asi: kdkf.com/CONTROLADOR/METODO/PARAMETRO
+
+Para que acepte parametro en el ViewResult hay que indicarle que parametro recibe
+
+Para modificar la forma de enrutamiento que tiene por defecto si es que te gusta. Se saca el app.UseMvcWithDefaultRoute(); del Startup
+y se pone el metodo: 
+    app.UseMvc(routes => routes.MapRoute("pagina", "{controller=algunControlador}/{action=algunMetodo}/{parametro}");
+   
+Modificando el segundo elemento puedo hacer rutas personalizadas. En mi ejemplo hago esto:
+    app.UseMvc(routes =>
+            {
+                routes.MapRoute("default", "{controller=Home}/{action=Index}/{id?}");
+            });
+
+    Le estoy indicando el controlador home metodo index y el parametro id con el signo ? significa que puede o no estar
+
+
+#ENRUTAMIENTO POR ATRIBUTOS
+    Para hacer este tipo de enrutamientos que para mi es mas comodo y personalizable si es que no quiero usar la rutas por defecto, 
+    lo que se hace es en el startup borrar app.UseMvcWithDefaultRoute();
+    y usar app.UseMvc();
+
+    Luego en el controlador, arriba de cada ViewResult que tenga, tengo que especificar la ruta de la vista con:
+        [Route ("ruta")]
+
+    *En mi ejemplo en el controladdor home para la vista index queda asi:
+        [Route ("")]
+        [Route ("Home")]
+        [Route ("Home/Index")]
+        public ViewResult Index()
+        {
+            //var automaticamente le pone el tipo necesario
+            var modelo = amigoAlmacen.DameTodosLosAmigos();
+            return View(modelo);
+        }
+
+        Le estoy asignando varias rutas a la misma vista
+
+    
+    *Y la vista details queda asi:
+        [Route ("Home/Details/{id?}")]
+        public ViewResult Details()
+        {
+            DetailsView detalles = new DetailsView();
+            //Meto los datos del amigo
+            detalles.amigo = amigoAlmacen.dameDatosAmigo(2);
+
+            //El titulo y subtitulo que queria
+            detalles.Titulo = "Lista Amigo ViewModels";
+            detalles.Subtitulo = "xxxxxxxxxxxxxxxxxx";
+
+            return View(detalles);
+        }
+
+
+        Donde de nuevo, el id con signo ? que puede ir o no
+*****************************************************************************************************************************************
+
+****************************************************************************************************************************************
+!IMPORTANTE
+Para pedir parametros que pueden ser nulos en c#:
+
+*El signo de interrogacion despues del tipo de dato es para especificar que puede venir nulo o no
+    public ViewResult Details(int? id)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+*Para asignar valores y en caso de venir nulos asigno otro
+    Acá poner dos signos de interrogacion lo que hace es decir que ponga el id si viene y si no viene o es nulo busca con 1
+    detalles.amigo = amigoAlmacen.dameDatosAmigo(id?? 1);
+            
+*****************************************************************************************************************************************
+
+Se puede instalar librerias como boostrap a travez del administrador de librerias haciendo click derecho en la solucion.
+Al instalar se agregan los archivos a la carpeta lib, y se crea el libman.json
+Y los llamo en el head del html como ya se
+
+*****************************************************************************************************************************************
+TAG HELPERS
+Son archivos del lado del servidor que se usan para crear y representar elementos html en archivos razor. Son similares al html helpers
+
+Lo primero que hay que hacer es importarlos y para eso conviene hacerlo en el view import.
+
+Asi se importa: 
+    @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+    El asterisco significa que va a estar disponible para todas las vistas
+
+Para usarlo directamente lo uso en el html (es algo nuevo para mi), un ejemplo de un enlace al controlador home, metodo detail, pasando
+el valor del id:
+    <a asp-controller="home" asp-action="details" asp-route-id=@amigo.Id></a>
+
+    <img class="card-img-top" src="~/images/imagen.jpg" asp-append-version="true" />
+
+    El asp-append-version="true" al parecer hashea la ruta de la imagen si la vez en el explorador de objetos
+
+
+
+OTROS COMANDOS QUE RE SIRVEN!!
+Puedo hacer que ciertas lineas del html se ejecuten dependiendo del ambiente en que este (desarrollo,produccion o staging) de la siguiente
+forma como ejemplo cuando llamo al bootsrap desde el head, con include es si es, con exclude si no es
+
+    <environment include="Development">
+        <link href="~/lib/twitter-bootstrap/css/bootstrap.css" rel="stylesheet" />
+    </environment>
+    
+    <!--Si el entorno NO es desarrollo-->
+    <environment exclude="Development">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" 
+              integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    </environment>
+
+
+Ahora si quiero hacer que cargue del cdn cuando no es development pero si hay algun fallo y no puede cargar por x razon que cargue desde
+el servidor local lo hago con asp-fallback de la siguiente forma:
+    
+    <environment exclude="Development">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" 
+              integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous"
+              asp-fallback-href="~/lib/twitter-bootstrap/css/bootstrap.css"
+              asp-fallback-test-class="sr-only"
+              asp-fallback-test-property="position"
+              asp-fallback-test-value="absolute"
+              asp-suppress-fallback-integrity="true"      
+        />
+    </environment>
+
+******************************************************************************************************************************************
+<!--asp.items permite meter codigo c# para traer automaticamente la lista que necesite-->
+        <select asp-for="Ciudad" asp-items="Html.GetEnumSelectList<Provincia>()"></select>
+******************************************************************************************************************************************
+
+PETICIONES POST Y GET
+Para manejar las peticiones GET en .net arriba de la funcion ViewResult en la que quiero hacer el get pongo [httpGet]
+
+En el caso de POST tendria que hacer una funcion RedirectToActionResult y en su cabecera especificar que responde a un Post asi:
+    
+    [HttpPost]
+    RedirectToActionResult mismoNombreQueElViewResult 
+
+    *CODIGO*
+
+    return RedirectToAction("NombreVistaARedirigir", Parametros si es necesario);
+
+En mi ejemplo del ejercicio es asi:
+
+    [Route ("Home/Create")]
+    [HttpPost]
+        public RedirectToActionResult Create(Amigo a)
+        {
+            Amigo amigo = amigoAlmacen.nuevo(a);
+
+            return RedirectToAction("details", new { id = amigo.Id });
+        }
+
+    Despues de hacer el post estoy mandando a la pagina details y paso como parametro el nuevo Id para ver el nuevo objeto 
+
+*******************************************************************************************************************************************
+PARA HACER VALIDACIONES DE DATOS DESDE EL BACKEND!!! SUPER IMPORTANTE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Cuando mando datos por formulario hay que hacer validaciones, ahora como estoy haciendo modelo fuertemente tipado puedo hacer las validaciones
+en el backend como tiene que ser.
+
+Un metodo mas facil para hacerlas es importar lo siguiente (using System.ComponentModel.DataAnnotations;) y con etiquetas de cabecera arriba de cada atributo de la clase que quiera validar asi:
+    
+    [Required(ErrorMessage = "Un mensaje de error"),
+     MaxLength(numero, ErrorMessage = "Un mensaje de error"),
+     Display(Name="Un nombre"),
+     RegularExpression(Expresion Regular, ErrorMessage = "Un mensaje de error")]
+    public tipo atributo
+
+*El required es para decir que es reuqerido y bueno ya te das una ida, las expresiones regulares es para que las cumpla como en el curso
+ de javascript de jon
+
+Despues en el controlador donde este haciendo el Post el tipo de metodo tiene que ser IActionResult y para comprobar si paso 
+las validaciones se hace con if (ModelState.IsValid):
+      
+      
+      [HttpPost]
+      public IActionResult metodo ()
+      {
+        if (ModelState.IsValid) 
+        {
+            *Acciones*
+
+            return RedirectToAction("pagina");
+        } 
+
+        return View();
+      }
+
+     
+
+Luego en el formulario donde hago el post osea en el html, puedo mostrar un resumen de los errores con lo siguiente:
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+*Es opcional lo del resumen
+
+POR ULTIMO hay que poner en cada input del formulario el span con validacion para que muestre el error si es que ocurre como en el curso
+de JS. Aca en c# se hace asi
+    <span asp-validation-for="Atributo"></span>
+
+
+
+Mi ejemplo quedo asi:
+
+    public class Amigo
+        {
+            public int Id { get; set; }
+
+            [Required(ErrorMessage ="Obligatorio"), MaxLength(100, ErrorMessage = "No mas de 100 caracteres")]
+            public string Nombre { get; set; }
+
+            [Required(ErrorMessage = "Obligatorio")]
+            [Display(Name ="Email")]
+            [RegularExpression(@"^[a-zA-Z0-9_.+-]@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", ErrorMessage = "Formato Incorrecto")]
+            public string Email { get; set; }
+
+            [Required(ErrorMessage = "Debe seleccionar una ciudad")]
+            public Provincia? Ciudad { get; set; }
+        }
+
+
+
+Y controlador asi:
+
+        //Acá manejo el metodo Post de Create
+        [Route("Home/Create")]
+        [HttpPost]
+        public IActionResult Create(Amigo a)
+        {
+            //Este if es para comprobar que paso las validaciones que hice en la clase Amigo.cs
+            if (ModelState.IsValid)
+            {
+                Amigo amigo = amigoAlmacen.nuevo(a);
+
+                return RedirectToAction("details", new { id = amigo.Id });
+            }
+
+            return View();
+            
+        }
+
+
+
+Y la vista con el formulario me queda asi:
+
+    <form asp-controller="home" asp-action="Create" method="post" class="m-2">
+
+        <!--Esto es para mostrar un resumen de los errores de la validacion es opcional-->
+        <div asp-validation-summary="All" class="text-danger"></div>
+
+        <div class="form-group row">
+            <label asp-for="Nombre" class="col-sm-2 col-form-label"></label>
+            <div class="col-sm-10">
+                <input asp-for="Nombre" class="form-control" placeholder="Nombre"/>
+            
+                <!--Aca voy a mostrar el error si se produce en al validacion para este atributo-->
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>        
+        </div>
+
+        <div class="form-group row">
+            <label asp-for="Email" class="col-sm-2 col-form-label"></label>
+            <div class="col-sm-10">
+                <input asp-for="Email" class="form-control" placeholder="Email" />
+
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>        
+        </div>
+
+        <div class="form-group row">
+            <label asp-for="Ciudad" class="col-sm-2 col-form-label"></label>
+            <div class="col-sm-10">
+                <!--asp.items permite meter codigo c# para traer automaticamente la lista que necesite-->
+                <select asp-for="Ciudad" asp-items="Html.GetEnumSelectList<Provincia>()" class="custom-select mr-sm-2">
+                    <option value="">Seleccione uno</option>
+                </select>
+
+                <span asp-validation-for="Ciudad" class="text-danger"></span>
+            </div>        
+        </div>
+
+        <div class="form-group row">
+            <div class="col-sm-10">
+                <button type="submit" class="btn btn-primary">Nuevo</button>
+            </div>        
+        </div>
+    </form>
+*******************************************************************************************************************************************
+
+ENTITY FRAMEWORK
+Es un ORM (mapeo objeto relacional)
+    
+Para instalar en caso de que no te venga instalado que es medio raro. En el proyecto hay que seleccionar administrar paquete nugget
+y buscar el entity framework que vamos a usar, en mi caso voy a usar el que tiene sql server. 
+
+IMPORTANTE! A veces tira error por la version del .NET standar, eso se cambia en las propiedas del proyecto y pones la version que pide.
+2.1 generalmente pide
+        
+DBContext es la que hace la conexion a la BD
+
+Hay algunas cositas que cambian en la version Core el dbContext es asi:
+    
+    namespace Ejemplo1.Models
+    {
+        public class AppDbContext: DbContext
+        {
+            public AppDbContext (DbContextOptions<AppDbContext> options): base(options)
+            {
+
+            }
+
+            public DbSet<Amigo> Amigos { get; set; }
+        }
+    }
+
+
+
+Y LA CONEXION A LA BD SE HACE EN EL appsettings.json:
+    
+       "ConnectionStrings": {
+            "ConexionSQL": "Data Source=DANI-PC;Initial Catalog=Amigos;Integrated Security=True"
+
+       }
+
+DESPUES EN EL STARTUP EN EL METODO ConfigureServices SE HACE LA INICIALIZACION DEL MOTOR:
+
+    public void ConfigureServices(IServiceCollection services)
+    {
+        //Inicializacion del motor BD
+        services.AddDbContextPool<AppDbContext>(options => options.UseSqlServer(_configuration.GetConnectionString("ConexionSQL")));
+    }
+
+
+DESPUES YA SIGO TODO NORMAL AGREGANDO LOS METODOS CRUD EN LAS CLASES Y ESO
+
+Para el metodo modificar el profe hizo este metodo que esta bueno, uso Attach que actualiza todos los datos automaticamente:
+    public Amigo modificar(Amigo modificarAmigo)
+        {
+            //Con attach me traigo todos las referencias y datos del objeto y los modifica por los nuevos valores
+            var amigo = contexto.Amigos.Attach(modificarAmigo);
+
+            amigo.State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+
+            contexto.SaveChanges();
+
+            return modificarAmigo;
+        }
+
+
+
+!!!ESTOY HACIENDO CODIGO FIRST, OSEA QUE A PARTIR DEL CODIGO VA A CREAR LAS TABLAS DE LA BD!!!
+
+SUPONIENDO QUE ESTOY HACIENDO TODO MANUAL COMO EN ESTE EJEMPLO Y QUIERO HACER LA MIGRACION DE LA BD EN LA SOLUCION TENGO QUE:
+    
+    1° Abrir la consola de administrador de paquetes que esta en View -> Other Windows -> Package Manager Console
+
+    2° Escribir el comando Add-Migration InitialCreate
+        Esto genera automaticamente las carpetas con las clases y objetos que podemos crear y manejar desde la BD.
+        Si tira error, instalar el paquete EntityFramework.Core.Tools
+
+    3° En la clase de contexto (mi caso AppDbContext) sobrescribir el metodo OnModelCreating asi:
+        
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Amigo>().HasData(new Amigo
+            {
+                Id = 1,
+                Nombre = "Dani",
+                Ciudad = Provincia.Jujuy,
+                Email = "dany12rp@hotmail.com"
+            });
+        }
+
+        Lo que hace es fijarse si al crear la tabla Amigo esta tiene datos, si no tiene crea un nuevo registro con los datos que le pase
+
+
+    4° Compilar
+
+    5° Volver a abrir la consola de administrador de paquetes y escribir el siguiente comando:
+        
+        Add-Migration SeedAmigosTable
+       
+       Esto va a generar el archivo cs que corresponde al insert y delete del punto 3
+
+    6° Compilar
+
+    7° Volver a abrir la consola de administrador de paquetes y escribir el siguiente comando:
+        
+        Update-Database
+
+        Este comando ya hace la actualizacion y la inserccion de los datos y tablas.
+      
+Y LISTO CON ESO YA ESTA
+
+Si quiero agregar mas cosas luego de haber hecho ya la primer migracion por ejemplo:
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Amigo>().HasData(new Amigo
+            {
+                Id = 1,
+                Nombre = "Dani",
+                Ciudad = Provincia.Jujuy,
+                Email = "dany12rp@hotmail.com"
+            },
+            new Amigo
+            {
+                Id = 2,
+                Nombre = "Sapo",
+                Ciudad = Provincia.Salta,
+                Email = "asd@hotmail.com"
+            },
+            new Amigo
+            {
+                Id = 3,
+                Nombre = "Roto",
+                Ciudad = Provincia.Tucumán,
+                Email = "xxx@hotmail.com"
+            });
+        }
+
+Tengo que volver a la consola de administracion de paquetes y crear una nueva migracion:
+
+        Add-Migration AlterAmigosSeedData
+
+y luego actualizamos con Update-Database
+
+Como ves se parece mucho a Django, cada vez que haga un cambio a la BD o a las clases Modelo creo una nueva migracion y actualizo con
+Update-Database
+
+*******************************************************************************************************************************************
+
+PROCESO PARA CREAR ALGUNA FUNCIONALIDAD TIPO ABM
+Basicamente el proceso es:
+    
+    * Hacer el link html que vaya al controlador y al metodo (insert,edit, delete) y mandar parametro si es necesario
+        asp-controller="controlador"  asp-action="metodo"
+
+    * Crear el metodo en el controlador que llame a los metodos correspondientes del modelo segun es insert edit o delete
+
+    * Crear la vista para el metodo
+
+    * Crear el POST en el controlador delete, edit y create
+
+*******************************************************************************************************************************************
+!!  IMPORTANTE !!!
+Cuando usas asp-route en un a en html, no te olvides que despues de route va -NombreDeVariable. La nombre de la variable tiene que conincidir
+con la que recibe por parametro en el metodo del controller: 
+        
+            asp-route-id = @amigo.Id
+*******************************************************************************************************************************************
+
+UN BUEN METODO PARA SUBIR IMAGENES AL SERVIDOR LOCAL:
+
+if (model.Foto != null)
+            {
+                string carpetaSubida = Path.Combine(hosting.WebRootPath, "images");
+                
+                nombreFichero = Guid.NewGuid().ToString() + "_" + model.Foto.FileName;
+
+                string ruta = Path.Combine(carpetaSubida, nombreFichero);
+
+                //Otra forma de subir foto al servidor
+                using (var fileStream = new FileStream(ruta, FileMode.Create))
+                {
+                    model.Foto.CopyTo(fileStream);
+                }
+
+            }
+
+El atributo Foto es del tipo IFormFile
+
+*******************************************************************************************************************************************
+
+PARA TIRAR ERRORES HTTP
+
+Con Response.StatusCode = codigoATirar, tiro errores http por ejemplo:
+    //Hago el control de que exisa el id
+    if(detalles.amigo == null)
+    {
+        Response.StatusCode = 404;
+        
+        //Estoy llamando a la vista "AmigoNoEncontrado"
+        return View("AmigoNoEncontrado", id);
+    }
+
+PARA CONTROLAR TODOS LOS ERRORES 404 QUE SE PRODUZCAN SE CONTROLAN DESDE EL METODO Configure de StartUp.cs
+
+    //PARA CONTROLAR LOS ERRORES HTTP
+    //Entre parentesis pongo a la ruta que va a ir y el {0} va a ser reemplazado dinamicamente con el error http que se produzca
+    app.UseStatusCodePagesWithRedirects("/Error/{0}");
+
+Se debe hacer un controlador para agarrar ese error asi:
+    
+    public class ErrorController : Controller
+    {
+        [Route("Error/{statusCode}")]
+        public IActionResult HttpStatusCodeHandler(int statusCode)
+        {
+            switch (statusCode)
+            {
+                case 404:
+                    ViewBag.ErrorMessage = "El recurso solicitado no se puede encontrar";
+                    break;
+            }
+
+            return View("Error");
+        }
+    }
+
+OBVIAMENTE HAY QUE CREAR LA VISTA Error.
+
+- - - - - -  --  - - --  - - -- - - - - - - -  - - - - - - - - - - - -  - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+GENERALMENTE LO ANTERIOR SE HACE EN ENTORNO DE PRODUCCION O STAGING POR LA SIGUIENTES RAZONES:
+
+    //Si esta en produccion o staging hago la redireccion de errores http
+    //no lo hago en desarrollo porque generalmente en desarrollo uno quiere saber los detalles del error
+    //en cambio en staging o en produccion el usuario no tiene que saber los detalles
+
+    //El entorno lo cambio en launchSettings.json
+
+LAS VALIDACIONES DE ENTORNO AMBIENTE SE HACEN EN EL METODO Configure de StartUp.cs asi:
+
+    if (env.IsDevelopment())
+    {
+        *Entorno de desarrollo
+    }
+    else if(env.IsProduction() || env.IsStaging())
+    {
+        *Entorno de produccion o en entorno de staging
+    }
+
+*******************************************************************************************************************************************
+EXCEPCIONES
+Para tirar excepciones se usa throw new expcetion("texto a preferencia");
+
+*******************************************************************************************************************************************
+MANEJAR GLOBALMENTE LAS EXCEPCIONES
+Suponiendo que estoy en staging o produccion y que cuando se produzca cualquier tipo de excepcion no importa cual, la maneje simplemente
+mostrando un mensaje de error lo hago con app.UseExceptionHandler("/Ruta controlador") en el metodo Configure de Startup.cs asi:
+
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else if(env.IsProduction() || env.IsStaging())
+            {              
+                app.UseStatusCodePagesWithRedirects("/Error/{0}");
+
+                //Para mandar cualquier excepcion sin importar cual al controlador error
+                app.UseExceptionHandler("/Error");
+            }
+
+            app.UseStaticFiles();
+
+            app.UseMvc(); 
+            
+        }
+
+!!!EN EL CONTROLADOR MANEJA LA RUTA /ERROR!!!!!! :
+        
+        //Para que no requiera validacion
+        [AllowAnonymous]
+        [Route ("Error")]
+        public IActionResult Excepciones()
+        {
+            var exceptionHandlerPathFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+            ViewBag.ExceptionPath = exceptionHandlerPathFeature.Path;
+            ViewBag.ExceptionMessage = exceptionHandlerPathFeature.Error.Message;
+            ViewBag.StackTrace = exceptionHandlerPathFeature.Error.StackTrace;
+
+            return View("ErrorGenerico");
+        }
+
+
+Y la vista ErrorGenerico:
+
+        <h3>
+            Ocurrio un error procesando su solicitud
+        </h3>
+        <h5>Contacta con el capo Dani</h5>
+        <br />
+        <h3>Detalles</h3>
+
+        <div class="alert alert-danger">
+            <h5>Ruta de la excepcion:</h5>
+            <hr />
+            <p>@ViewBag.ExceptionPath</p>
+        </div>
+
+        <div class="alert alert-danger">
+            <h5>Mensaje de error:</h5>
+            <hr />
+            <p>@ViewBag.ExceptionMessage</p>
+        </div>
+
+        <div class="alert alert-danger">
+            <h5>Pila:</h5>
+            <hr />
+            <p>@ViewBag.StackTrace</p>
+        </div>
+    
+
+EL STACKTRACE LO SACO A MODO DE EJEMPLO, EN REALIDAD NO SE LE DEBERIA MOSTRAR AL USUARIO. EN OTRO VIDEO VA A MOSTRAR COMO MANDARLO A UN LOG
+
+
+*******************************************************************************************************************************************
+
+LOGS
+Ahora si para crear el logs donde voy a poner la pila de errores tengo que crear un atributo de interfaz ILogger<claseControlador> nombre
+y hacer el constructor, en errorController queda asi:
+
+        private readonly ILogger<ErrorController> logs;
+        
+        public ErrorController(ILogger<ErrorController> log)
+        {
+            this.logs = log;
+        }
+
+Despues lo agregamos en el metodo que quiera usarlo, en mi ejemplo lo agrego en el controlador de error en el metodo de excepciones ahora
+al agregar el logs.LogError() para agregar el error al log quedaria asi:
+
+    public IActionResult Excepciones()
+        {
+            var exceptionHandlerPathFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+            ViewBag.ExceptionPath = exceptionHandlerPathFeature.Path;
+            ViewBag.ExceptionMessage = exceptionHandlerPathFeature.Error.Message;
+            ViewBag.StackTrace = exceptionHandlerPathFeature.Error.StackTrace;
+
+            //Guardo el error en el log
+            logs.LogError($"Ruta del ERROR: {exceptionHandlerPathFeature.Path} +" +
+                $"Excepcion: {exceptionHandlerPathFeature.Error.Message} +" +
+                $"Traza del ERROR: {exceptionHandlerPathFeature.Error.StackTrace}");
+
+            return View("ErrorGenerico");
+        }
+
+
+YA PODRIA BORRAR TODO LOS MENSAJES PERSONALZIADOS DE LA VISTA OSEA TODOS LOS VIEW BAG Y SOLO MOSTRAR UN MENSAJE DE ERROR, YA QUE ESTOY
+GUARNDANDO LOS DETALLES EN EL LOG
+
+PARA MAS COMODIDAD EN PRODUCCION Y STAGING TAMBIEN ESTA BUENO GUARDAR EL ERROR EN UN FICHERO PARA ESO DESCARGO DEL ADMINISTADOR NUGET
+EL PAQUETE NLog
+En raiz crear un arhivo de texto con nombre nlog.config y llenar con esto (cambiar lo necesario como la url de donde quiero que vaya
+el archivo):
+    
+    <?xml version="1.0" encoding="utf-8"?>
+        <nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <targets>
+                <target name="allfile" xsi:type="File"
+                filename="C:\Users\Dani\OneDrive\Documents\CURSOS PROGRAMACION\Curso .NET Core\nlog-all-${shortdate}.log"/>
+            </targets>
+            <rules>
+                <logger name="*" minlevel="Trace" writeTo="allfile"/>
+            </rules>  
+        </nlog>
+
+Si no crea los archivos log cuando ocurren errores, en las propiedades del archivo nlog.config  (en visual studio abajo a la derecha)
+donde dice copy algo poner en copy always.
+
+En Program.cs agrego esto: 
+
+    using NLog.Extensions.Logging;
+
+Y en el metodo CreateWebHostBuilder agrego esto:
+
+    logging.AddNLog();
+
+## A MI NO ME APARECE ESE METODO PORQUE TENGO .NET 3.1 A PARTIR DEL 3 YA NO USA ESO 
+ASI QUE NO LO HICE Y BUENO EL VIDEO ES EL NUMERO 34 DEL CURSO ##
+
+*******************************************************************************************************************************************
+
+ASP.NET CORE IDENTITY
+
+El core identity es una API que maneja todo lo referido a la SESION, INICIO, CREACION, CERRAR, Y LOS DATOS DE USUARIO. ESTA RE BUENO
+Puede usarse el mismo servidor para el manejo de las sesiones o proveedores externos como Google Facebook y Microsoft, Twitter.
+
+Para usarlo en un proyecto ya empezado:
+
+    1° A mi clase contexto en mi ejemplo la AppDbContext hago que herede de IdentityDbContext (si tira error en la bombilla sale para
+    descargar el paquete y asi te pone el using y todo joya). En el metodo OnModelCreating tiene que ir la linea 
+    base.OnModelCreating(modelBuilder) asi quedaria todo:
+
+        public class AppDbContext:IdentityDbContext
+        {
+            public AppDbContext (DbContextOptions<AppDbContext> options): base(options)
+            {
+
+            }
+
+            public DbSet<Amigo> Amigos { get; set; }
+
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
+
+                base.OnModelCreating(modelBuilder);
+            }
+        }
+
+        
+      Es necesario heredar IdentityDbContext porque nos da los mecanismo necesarios para manejar las sesiones e identidades.
+
+    
+    2° En el metodo configureServices del Startutp.cs agregar 
+    la linea services.AddIdentity<IdentityUser, IdentityRole>().AddIdentityFrameworkStores<CONTEXTO>();
+    En mi ejemplo queda asi:
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddDbContextPool<AppDbContext>(options => options.UseSqlServer(_configuration.GetConnectionString("ConexionSQL")));
+
+            services.AddMvc(options => options.EnableEndpointRouting = false);
+
+            services.AddScoped<IAmigoAlmacencs, SQLAmigoRepositorio>();
+
+
+            //PARA EL IDENTITY CORE
+            //Lo que hace es agregar las implementaciones de configuraciones por default de identity para usuarios y sus roles
+            //a mi contexto
+            
+            services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<AppDbContext>();
+            
+        }
+
+
+
+    3° En el metodo Configure del StartUp hay que indicar a la app que lo use con app.UseAuthentication(); me queda si:
+        
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else if(env.IsProduction() || env.IsStaging())
+            {
+                app.UseStatusCodePagesWithRedirects("/Error/{0}");
+
+                app.UseExceptionHandler("/Error");
+            }
+
+            app.UseStaticFiles();
+
+
+            //PARA USAR EL IDENTITY
+            app.UseAuthentication();
+           
+            app.UseMvc();             
+        }
+
+
+
+    4° Por ultimo hacer la migracion con Add-Migration nombre
+        y despues aplico la migracion con Update-Database
+        Todo eso en la consola de administracion de paquetes
+        Con es en la base de datos se crean varias tablas necesarias para poder usar el identity como usuarios y roles
+        Y listo con eso ya se puede comenzar a usarlo, ya esta instalado y listo.
+
+*******************************************************************************************************************************************
+
+CREACION DE NUEVOS USUARIOS USANDO IDENTITY
+
+El enlace a la vista en Layout.cshtml
+
+Hay que crear el view model (RegistroModelo lo nombre), el controlador, los metodos y las vistas que se van a encargar de toda la creacion
+
+Mi ViewModel es RegistroModelo.cs ahi en los comentarios hay explicaciones
+
+La vista esta en Views->Cuentas->Registro.cshtml
+
+Identity tiene APIS para gestionar tanto todas las operaciones relacionadas a usuario como tambien una para gestionar todo lo relacionado
+al inicio de sesion al logueo. Estas API las da las clases:  UserManager y SignInManager. Yo en mi ejemplo las puse como propiedades
+y a la clase controlador le asigno el valor con el constructor asi:
+
+
+    public class CuentasController : Controller
+    {
+        //La clase UserManager nos da la API que permite administrar y gestionar usuarios
+        private readonly UserManager<IdentityUser> gestionUsuarios;
+
+        //La clase SignInManager nos da la API que tiene los metodos necesarios para que el usuario inicie sesion
+        private readonly SignInManager<IdentityUser> gestionLogin;
+
+        //Constructor
+        public CuentasController(UserManager<IdentityUser> gestionUsuarios, SignInManager<IdentityUser> gestionLogin)
+        {
+            this.gestionUsuarios = gestionUsuarios;
+            this.gestionLogin = gestionLogin;
+        }
+
+
+Para su metodo HttpGet simplemente llamo a la vista:
+    
+        //La vista de Registro
+        [HttpGet]
+        [Route("Cuentas/Registro")]
+        public IActionResult Registro()
+        {
+            return View();
+        }
+
+
+
+La vista tiene un formulario con metodo post que se va a ejecutar en el submit del form, asi que en el controlador indico que va a pasar
+cuando se haga post. Aca manejo el UserManager y SignInManager. El metodo va a ser async porque necesito usar los await
+Me queda asi:
+
+        //POST es asincrona
+        [HttpPost]
+        [Route("Cuentas/Registro")]
+        public async Task<IActionResult> Registro(RegistroModelo model)
+        {
+            //Si pasa las validaciones
+            if(ModelState.IsValid)
+            {
+                //Pasamos los valores de la clase RegistroModelo a una clase IdentityUser que es la usa el UserManager y SignInManager
+                var usuario = new IdentityUser
+                {
+                    //El nombre del usuario va a ser el email como se hace actualmente en varias paginas
+                    UserName = model.Email,
+                    Email = model.Email
+                };
+
+                //Guardo al usuario con contraseña la contraseña que paso usando el metodo createAsync del UserManager 
+                //en la tabla aspUsers que creo el identity
+                var resultado = await gestionUsuarios.CreateAsync(usuario, model.Password);
+
+                //Valido si se creo con exito
+                if(resultado.Succeeded)
+                {
+                    //Intento loguear con SignInManager y un await asi espero que se loguee y recien entra a la linea que 
+                    //redirige al index
+                    await gestionLogin.SignInAsync(usuario, isPersistent: false);
+
+                    //RedirectToAction(metodo,controlador)
+                    return RedirectToAction("index", "home");
+                }
+
+                //En caso de que se produzca un error lo controlo
+                foreach(var error in resultado.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+            }
+
+            return View(model);
+        }
+
+*******************************************************************************************************************************************
+
+Para configurar las validaciones y personalizarlas voy al metodo ConfigureServices del StartUp.cs y uso services.configure<IdentityOptions>
+
+            //Configuro las validaciones para personalizarlas a mi gusto
+            services.Configure<IdentityOptions>(opciones =>
+            {
+                opciones.Password.RequiredLength = 4;
+                opciones.Password.RequireNonAlphanumeric = false;
+            });
+
+Esas son algunas de las posibilades de personalizacion hay muchas mas.
+
+El tema de que los mensajes estan en ingles se cambian a español manualmente haciendo override a cada mensaje. Eso esta hecho en la clase
+ErroresCastellano.cs
+
+Luego para usar esa clase hay que hacerlo en el StartUp en la lineas:
+    
+    services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<AppDbContext>();
+
+Modifico esas lineas para que queden asi, agruege el AddErrorDescriber<claseErrores>():
+
+    services.AddIdentity<IdentityUser, IdentityRole>().AddErrorDescriber<ErroresCastellano>().
+                AddEntityFrameworkStores<AppDbContext>();
+
+
+******************************************************************************************************************************************
+CERRAR SESION CON IDENTITY
+
+En la cabecera del sitio de este ejemplo salen los enlaces Registro y Login, si el usuario esta logueado estos se cambian por un enlace
+que dice cerrar sesion nombreUsuario y al hacer click se cierra la sesion y se vuelve al index, los pasos para hacer esto en este
+ejemplo son:
+
+    1° En el viewImports voy a importar la clase AspNetCore.Identity porque sus metodos los voy a usar seguido.
+
+    2° En el layout.cshtml (ahi esta el header) al inicio con @inject inyecto la clase SignInManger<IdentityUser> nombre, para poder
+        gestionar el incio de sesiones. Asi:
+
+            @inject SignInManager<IdentityUser> SignInManager
+
+    
+    3° En la vista agrego el formulario para cerrar sesion y uso la propiedad User que me trae datos del usuario logueado actualmente
+        queda asi:
+
+                <ul class="navbar-nav ml-auto">
+
+                    <!--Si el usuario esta logueado hago que aparezca el link de cerrar sesion-->
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        //Hago un form que cuando haga click en cerrar sesion tire un post asi cierro la sesion en el controlador
+                        <li class="nav-item">
+                            <form method="post" asp-controller="Cuentas" asp-action="CerrarSesion">
+                                <button type="submit" style="width:auto" class="nav-link btn btn-link py-0">
+                                    Logout @User.Identity.Name
+                                </button>
+                            </form>
+                            
+                        </li>
+
+                    }
+                    else
+                    {
+
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Cuentas" asp-action="Registro">
+                                Registro
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Cuentas" asp-action="Login">
+                                Login
+                            </a>
+                        </li>
+
+                    }
+                </ul>
+
+
+
+    4° En el controlador Cuenta hago el metodo POST CerrarSesion asi:
+
+        [HttpPost]
+        [Route("Cuentas/CerrarSesion")]
+        public async Task<IActionResult> CerrarSesion()
+        {
+            await gestionLogin.SignOutAsync();
+
+            return RedirectToAction("index", "home");
+        }
+
+
+LISTO
+
+*******************************************************************************************************************************************
+
+INICIAR SESION CON IDENTITY
+
+Para iniciar sesion hay que mostrar una pantalla de login por lo que voy a crear un ViewModel, una view y lo que va a hacer el controlador
+
+    1° Hago el ViewModel:
+        
+        public class LoginViewModelo
+        {
+            [Required(ErrorMessage = "Email obligatorio")]
+            [EmailAddress]
+            public string Email { get; set; }
+
+            [Required(ErrorMessage = "Password Obligatorio")]
+            [DataType(DataType.Password)]
+            public string Password { get; set; }
+
+            [Display(Name = "Recuerdame")]
+            public bool Recuerdame { get; set; }
+
+        }
+
+
+    2° Hago la vista:
+
+
+        @model LoginViewModelo
+
+        @{ 
+            ViewBag.Title = "Login de Usuario";
+        }
+
+        <h1 class="h1">Login de Usuario</h1>
+
+        <div class="row">
+            <div class="col-md-12">
+                <form method="post">
+                    <div asp-validation-summary="All"></div>
+
+                    <div class="form-group">
+                        <label asp-for="Email"></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Password"></label>
+                        <input asp-for="Password" class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label asp-for="Recuerdame">
+                                <input asp-for="Recuerdame" />
+                                @Html.DisplayNameFor(m => m.Recuerdame)
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+
+
+
+    3° En el controlador la sesion se inicia con PasswordSignInAsync(usuario, password, recordar, bloqueo) de la api SignInManager:
+
+        GET
+
+        [HttpGet]
+        [Route("Cuentas/Login")]
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        
+        POST
+
+        [HttpPost]
+        [Route("Cuentas/Login")]
+        public async Task<IActionResult> Login(LoginViewModelo model)
+        {
+
+            if(ModelState.IsValid)
+            {
+                var result = await gestionLogin.PasswordSignInAsync(
+                    model.Email, model.Password, model.Recuerdame, false);
+                
+                if(result.Succeeded)
+                {
+                    return RedirectToAction("index", "home");
+                }
+
+                ModelState.AddModelError(string.Empty, "Inicio de sesion no valido");               
+
+            }
+
+            return View(model);
+        }
+
+
+*******************************************************************************************************************************************
+
+AUTORIZACION CON IDENTITY
+
+Agregando la cabecera [Authorize] sobre el metodo que del controlador podemos hacer que solo pueda acceder a el un usuario logueado.
+
+Con eso cuando alguien sin loguearse intenta entrar al metodo lo redirige a Account/Login.
+
+Se puede cambiar la direccion Account/Login poniendo la siguiente line en el StartUp.cs en el metodo configureServices:
+
+    //Cambio la direccion default Account/Login que hace el authorization por la que ya tengo creada yo.
+    services.ConfigureApplicationCookie(options => options.LoginPath = "/Cuentas/Login");
+
+
+El [Authorize] tambien se puede poner a nivel de clase, es decir arriba de la definicion de la clase asi:
+
+    [Authorize]
+    public class HomeController : Controller{...}
+
+
+Con eso no va a poder entrar a ningun metodo de la clase al menos que este logueado
+
+La contraparte de [Authorize] es [AllowAnonymous] que permite que cualquiera entre al metodo o clase.
+
+*******************************************************************************************************************************************
+
+VALIDACION DEL LADO DEL CLIENTE  ESTA MUY BUENO!!!!!!!!!!!!!!!!!!!!!!!!
+
+La validacion del lado del cliente se puede hacer con JS como en el curso de JavaScript de JON
+
+O se puede usar en el caso de .NET una biblioteca del lado del cliente
+
+Para eso hay que ir al proyecto click derecho y agregar bibiloteca del lado del cliente y elegir jquery validate y tambien instalar
+jquery-validate-unobstrusivse
+
+Despues hay que agregar las librerias que se descargaron al head del layout.htmlcs en mi ejemplo en el orden primero la jquery validate
+y despues la jquery-validate-unobstrusivse
+
+Lo que permiten esas librerias es agarrar las validaciones del lado del servidor e implementarlas en el lado del cliente sin tener que 
+estar nosotro programando en javascript
+    
+
+Y CON ESO YA ESTA. AUTOMATICAMENTE AGARRA LAS VALIDACIONES DEL SERVIDOR QUE TENGA EN LOS MODELOS O VIEWMODELS
+Y LAS IMPLEMENTA EN EL CLIENTE, NO ENTRA EN EL SERVIDOR
+LO PODES COMPROBAR PONIENDO PUNTO DE INTERRUPCION
+
+
+*******************************************************************************************************************************************
+
+VALIDACION REMOTA 
+
+Esto es validacion remota: es, desde cliente llamar a un método del servidor que nos diga 
+si un dato (entrado p.ej. en un campo de texto es válido o no). EN TIEMPO REAL SIN MANDAR PETICIONES
+
+Usa las librerias jquery que ya descargamos anteriormente
+Para usar las validaciones remotas 
+
+Para eso como siempre hacemos en el controlador el metodo que se encargue de validar:
+
+        Acepta tanto peticiones GET como POST
+        [AcceptVerbs("Get","Post")]
+        [AllowAnonymous]
+        [Route("Cuentas/CombrobarEmail")]
+        public async Task<IActionResult> ComprobarEmail(string email)
+        {
+            //El FindByEmailAsync es un metodo propio del UserManager
+            var user = await gestionUsuarios.FindByEmailAsync(email);
+
+            //Me fijo si existe un usuario con ese mail
+            if ( user == null)
+            {
+                return Json(true);
+            }
+            else
+            {
+                //El signo $ delante de un string crea un string interpolado que basicamente permite meter variables mediante llaves {}
+                //en vez de estar concatenando con "+ var +".
+                return Json($"El email {email} no esta disponible");
+            }
+
+        }
+
+Y sobre el modelo en el registro que esta validando agregar el encabezado(decorador) [Remote action: "metodo", controller: "controlador"] 
+para habilitar la validacion remota asi como el ejemplo de mi RegistroModelo.cs:
+
+        [Remote (action: "ComprobarEmail", controller: "Cuentas")]
+        public string Email { get; set; }
+
+
+*******************************************************************************************************************************************
+CREACION DE ATRIBUTO DE VALIDACION PERSONALIZADO
+
+El atributo Required es predeterminado de ASP y valida si puso algo en el campo. [Required (ErrorMessage="algo")]
+
+Yo tambien puedo crear mis propios atributos personalizados. Para hacerlo conviene, no es obligatorio pero conviene crear una carpeta
+con el nombre utilidades y ahi ir poniendo los validadores personalizados.
+
+Voy a crear un validador personalizado que valide el nombre de usuario en este caso el email, y que si ponen la palabra "puto" tire
+un mensaje de error.
+
+
+El metodo de esta clase lo que va a hacer es recibir la cadena nombre usuario osea el mail porque eso estoy usando como nombre usuario
+y si encuentra puto devuelve false. En el decorador del modelo voy a poner el mensaje de error para cuando sea false.
+Adentro crear una clase que haga las validaciones y que herede de ValidationAttribute asi:
+
+
+
+    public class ValidarNombreUsuario: ValidationAttribute
+    {
+        private readonly string usuario;
+
+        public ValidarNombreUsuario(string usuario)
+        {
+            this.usuario = usuario;
+        }
+
+
+        //La clase validationAttribute es una clase abstracta por lo que hay que redifinir con override los metodos que quiera usar
+        public override bool IsValid(object value)
+        {
+            Boolean permitido = true;
+
+            if (value.ToString().Contains("puto"))
+                permitido = false;
+
+            return permitido;
+        }
+    }
+
+
+
+Luego en el modelo añadirle al atributo a validar como decorado el nuevo validador por su nombre de clase y atributo que recibe
+[ValidadorPersonalizado (atributo: "palabra a validar", ErrorMessage= "Error")], asi me queda en el RegistroModelo.cs:
+
+        [ValidarNombreUsuario(usuario:"puto", ErrorMessage = "Palabra no permitida") ]
+        public string Email { get; set; }
+
+
+LISTO! ;)
+
+
+############################################################################################################################
+SIGNO $ DELANTE DE UN STRING
+    El signo $ delante de un string crea un string interpolado que basicamente permite meter variables mediante llaves {}
+    en vez de estar concatenando con "+ var +". En el ejemplo de abajo tengo una variable llamada email y la meto en la 
+    cadena con las llaves asi se muestra en el string.
+    
+    return Json($"El email {email} no esta disponible");
+
+############################################################################################################################
+
+
+
+*******************************************************************************************************************************************
+PERSONALIZANDO IDENTITY USER
+
+Si necesito mas campos aparte de los que trae el identity en sus tablas puedo hacerlo al extender al funcionalidad de su clase IdentityUser
+en ella estan todas las propiedas de la tabla como usuario contraseña email etc, en este ejemplo vamos a agregar una propiedad llamada 
+ayudaPass y lo hacemos al crear una clase que herede de IdentityUser y definir la propiedad en esta clase nueva asi:
+
+    public class UsuarioAplicacion: IdentityUser
+    {
+        //creo la propiedad a añadir
+        public string ayudaPass { get; set; }
+    }
+
+
+Luego si ya usamos el IdentityUser en alguna parte del codigo hay que cambiar todas las referencias por esta nueva clase. En caso de que no
+lo haya usado pues no hace falta.
+
+El siguiente paso es ir al appDbContext y agregar como metodo generico IdentityDbContext<clase nueva> a la nueva 
+clase personalizada creada asi:
+
+     public class AppDbContext:IdentityDbContext<UsuarioAplicacion>
+    {
+        public AppDbContext (DbContextOptions<AppDbContext> options): base(options)
+        {
+
+        }
+
+Y el siguiente paso es ir a la consola de administracion de paquete para actualizar la BD, con los ya usados Add-Migration nomobre
+y Update-Database. Fijarse en la BD si estan los cambios y listo ya podemos usarla para la logica. Agregar las propiedades personalizadas
+nuevas donde sea necesario como modelos o controladores y vistas.
+
+
+*******************************************************************************************************************************************
+CREACION DE ROLES CON IDENTITY
+
+La clase RolManager del identity se encarga del CRUD y toda administracion de roles. Y los administra sobre la tabla roles de la BD que
+hace el Identity.
+
+Voy a crear un controlador para administrar los roles. Le puse de nombre AdministracionController.cs
+
+El modelo se llama CrearRolViewModel y tiene un get set de un string nombre rol.
+
+La vista la cree en una carpeta Administracion en View y se llama CrearRol.cshtml
+
+*******************************************************************************************************************************************
+EDITAR ROL CON IDENTITY
+
+En la vista ya puse un boton para editar, hay que crear el metodo en el controlador y el modelo y vista necesario para la edicion.
+
+Vista esta en EditarRolViewModel despues
+
+*********************************************************************************************************************************************
+AGREGAR Y ELIMINAR USUARIOS A UN ROL CON IDENTITY
+
+Identity en la BD que creo tiene una tabla usuarios, una tabla roles y una tabla usuarioRol que es la que usa para relacionarlos.
+
+Voy a crear un modelo con la estructura de datos que voy a mostrar en la vista, usuario id, usuario nombre y un bool para el check.
+
+A la vista nueva que voy a crear se va a acceder desde la vista EditarRol, pongo un boton: crear o borrar usuario.
+
+*********************************************************************************************************************************************
+AUTORIZACION POR ROLES MEDIANTE IDENTITY
+
+Para dar autorizacion a determinados roles se con el decorador [Authorize] pero esta ves se usa con Roles y se indica el nombre del rol que
+puede acceder al metodo:
+
+    [Authorize(Roles ="Administrador")]
+    public class AdministracionController : Controller
+
+
+Ahora un ejemplo para mostrar u ocultar items del menu de navegacion segun el rol. En el menu a los items que quiera mostrar solo para 
+administrador simplemente si el usuario esta logueado y si pertenece al rol si entra por true muestro el item asi:
+
+    
+                    @if (SignInManager.IsSignedIn(User) && User.IsInRole("Administrador"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Administracion" asp-action="ListaRoles">Gestionar Roles</a>
+                        </li>
+                    }
+
+Eso esta en mi layout.cshtml
+
+Si no cumplis con el rol te manda un error de acceso denegado generico, entonces en cuentas controller me hago una vista mas linda para ese
+error.
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("Cuentas/AccesoDenegado")]
+        public IActionResult AccesoDenegado()
+        {
+            return View();
+        }
+
+La vista AccesoDenegado.cshtml:
+
+    <div class="text-center">
+    <h1 class="text-danger">Acceso Denegado</h1>
+    <h6 class="text-danger">No tienes permiso para ver este recurso</h6>
+    <img src="~/images/gratis-png-iconos-de-computadora-agar-io-acceso-denegado.png" 
+         style="height:400px;width:600px"/>
+    </div>
+
+
+La ruta por defecto de .net core para este error es Account/AccessDenied. Para cambiarlo tnego que ir al startup y modificar en 
+configureServices para agregar mi ruta personalizada como haciamos antes con login. Queda asi:
+
+            services.ConfigureApplicationCookie(options => 
+            {
+                options.LoginPath = "/Cuentas/Login";
+                options.AccessDeniedPath = "/Cuentas/AccesoDenegado";
+             
+            });
+
+
+*******************************************************************************************************************************************
+CRUD DE USUARIOS
+
+Basicamente creo vista lista de usuario y bueno obviamente el controlador tambien
+
+En el editar usuario pongo una lista de notificaciones que dice que en ingles es claims y a veces es usado para auntentificacion basada en
+notificaciones. En asp core es claims
+
+En la vista ListaUsuarios tengo implementado una forma de confirmacion de borrado que esta buena con Js parecido a lo que ya hacia antes
+
+En entity framework el borrado en cascada es el predeterminado
+
+El tipo de excepcion DbUpdateException se da cuando aparece un error al editar o borrar un dato de la BD, esta bueno para meter
+en un try catch y manejar la excepcion (DbException ex)
+
+*******************************************************************************************************************************************
+EDITAR ROLES DE USUARIO
+
+Nada nuevo, hago el modelo la vista y el controlador, el modelo es RolUsuarioModelo
+
+*********************************************************************************************************************************************
+GESTION DE CLAIMS (NOTIFICACIONES) CON IDENTITY
+
+Los claims son par de valores usadas para tomar decisiones de control de acceso. El boton esta en editarUsuario.cs.html
+
+En modelos el almacenClaim
+
+En ViewModel UsuarioClaim y UsuarioClaimsViewModel
+
+*******************************************************************************************************************************************
+AUTORIZACION MEDIANTE CLAIMS
+
+Para hacer autorizaciones por claims hay que crear politicas y decir sobre que claim va a actuar, con esto puedo hacer que dependiendo del
+claim del usuario pueda o no acceder a un recurso.
+
+Para agregar autorizaciones se lo hace desde el startup.cs en su metodo configureServices y se ejecuta la lineas:
+
+    services.AddAuthorization (options => 
+    {
+        options.AddPolicy("Nombre de la politica", 
+            policy => policy.RequireClaim("Claim necesario").RequireClaim("otro claim)... y asi con cuantos claims quiera)
+
+    });
+
+En mi ejemplo hago un claim para borrar roles solo si tiene el claim borrar rol (Eso esta en el tipo de claim que cree en la
+clase AlmacenClaim) , queda asi:
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("BorrarRolPolicy",
+                    policy => policy.RequireClaim("Borrar Rol"));
+            });
+
+
+Luego en el metodo del controlador que quieramos meter esta politica nueva creada se lo hace desde el decorador como todo authorization,
+con: [Authorize(Policy = "Nombre de la politica")]]. Mi metodo borrar rol del controlador queda asi:
+
+        [HttpPost]
+        [Route("Administracion/EliminarRol")]
+        [Authorize(Policy = "BorrarRolPolicy")]
+        public async Task<IActionResult> EliminarRol(string id){...}
+
+**********************************************************************************************************************************************
+AUTORIZACION PERSONALIZADA
+
+A las politica de editar rol le agrega el true en el startup para que cuando sea true tenga permiso de editar. El valor lo maneja en el
+controlador, el post de GestionarUsuarioClaims
+
+A una politica se le puede dar distintos metodos de autorizacion personalizada, en una politica a parte de tener autorizacion de claims
+tambien puedo agregar autorizacion por roles, algo asi:
+
+                    options.AddPolicy("EditarRolPolicy",
+                    policy => policy.RequireClaim("Editar Rol", "true")
+                    .RequireRole("Administrador")
+                    .RequireRole("Dios"));
+
+Este codigo dice que tiene que tener esos roles y el claim para acceder, pero yo lo que busco es que si es administrador y tiene el claim
+en true es suficiente o que sea rol dios, no la necesidad de que sea ambos roles, esto lo modifico y queda asi:
+
+                 options.AddPolicy("EditarRolPolicy", policy => policy.RequireAssertion(context =>
+                    context.User.IsInRole("Administrador") &&
+                    context.User.HasClaim(claim => claim.Type == "Editar Rol" && claim.Value == "true") ||
+                    context.User.IsInRole("Dios")
+                ));
+
+Ahora voy a modificar el codigo para que un administrador no pueda cambiar sus propios permisos. Lo hago creando la carpeta seguridad y 
+adentro meto dos clases GestionarAdminRolesyClaims.cs y PoderEditarSoloOtrosClaimsRoles.cs. En el startup vuelvo a cambiar la politica:
+
+    options.AddPolicy("EditarRolPolicy", policy => policy.AddRequirements(new GestionarAdminRolesyClaims()));
+
+Y agrego el singleton para que en vez del IAuthorizationHandler use primero la clase PoderEditarSoloOtrosClaimsRoles:
+
+    services.AddSingleton<IAuthorizationHandler, PoderEditarSoloOtrosClaimsRoles>();
+
+
+
+*******************************************************************************************************************************************
+AUTORIZACION DE GOOGLE
+
+Es para permitirte loguearte usando tu cuenta de google o facebook.
+
+Para eso hay que ir a la consola de desarrollador de google (google developer console) en internet. Creamos nuevo proyecto, en bibliotecas
+buscamos la API de google+ y la habilitamos. Despues volvemos a API y servicion y vamos a pantalla de consentimiento y ponemos que sea
+externa para todo el mundo y llenamos lo que pida, guardamos y vamos a credenciales. Creamos credencial Id cliente OAuth elegimos aplicacion
+web, copiamos la direccion del localhost en la que se inicia la aplicacion, en propiedas de la solucion de visual studio habilitamos el SSL
+a esa direccion la ponemos en la pantalla de credenciales cuando pide origenes de javascript autorizados y lo mismo en url de redireccion
+que es para donde nos redirige para la autenticacion yo puse: http://localhost:57288/singin-google y le damos a crear.
+
+Nos da las claves para usar en la aplicaion. 
+
+Ahora en la solucion hay que hacer la interfaz grafica y la redireccion de la solicitud a google cuando quiera iniciar sesion.
+
+En startup en configureServices se agrega la autenticacion google con las credenciales que me dio la pagina (clave secreta) asi:
+
+            //Autenticacion google
+            services.AddAuthentication().AddGoogle(opciones =>
+            {
+                opciones.ClientId = "Pon tu id cliente";
+                opciones.ClientSecret = "Pon tu clave secreta";
+            });
+
+############################################ IMPORTANTE #####################################################
+# Si no te deja usar el AddGoogle hay que isntalar el paquete de abajo con la version de tu .net en mi 3.1: #
+#                                                                                                           #
+#    Install-Package Microsoft.AspNetCore.Authentication.Google -Version 3.1.13                             #
+#############################################################################################################
+
+
+Al LoginViewModelo le agrego estas dos propiedades:
+
+        public string UrlRetorno { get; set; }
+
+        public IList<AuthenticationScheme> LoginExternos { get; set; }
+
+La url de retorno indica donde va a ir el usuario despues de una autenticacion correcta y la otra es una lista para agregar todos los 
+logins externos por ejemplo despues quiero meter por facebook o twitter.
+
+Al metodo de Login del controlador CuentasController lo modifico asi:
+
+        [HttpGet]
+        [Route("Cuentas/Login")]
+        //Permito que entre cualquiera para poder loguearse
+        [AllowAnonymous]
+        public async Task<IActionResult> Login(string urlRetorno)
+        {
+            LoginViewModelo modelo = new LoginViewModelo
+            {
+                UrlRetorno = urlRetorno,
+                LoginExternos = (await gestionLogin.GetExternalAuthenticationSchemesAsync()).ToList()
+            };
+
+             return View(modelo);
+        }
+
+Y agrego el metodo POST para el login externo:
+
+        //Login externo para autenticacion por google y facebook
+        [HttpPost]
+        [Route("Cuentas/LoginExterno")]
+        //Permito que entre cualquiera para poder loguearse
+        [AllowAnonymous]
+        public IActionResult LoginExterno(string proveedor, string urlRetorno)
+        {
+
+            var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = urlRetorno });
+
+            var properties = gestionLogin.ConfigureExternalAuthenticationProperties(proveedor, redirectUrl);
+
+            return new ChallengeResult(proveedor, properties);
+
+        }
+
+
+Modifica la vista login.cshtml para incluir el boton de login externo por cada servicio de cuenta externa:
+
+    <div class="row">
+        <div class="col-md-6">
+            <h1>Login Externo</h1>
+            <hr />
+
+            @{ 
+                if(Model.LoginExternos.Count == 0)
+                {
+                    <div>No hay logins externos configurados</div>
+                }
+                else
+                {
+                    <form method="post" asp-action="LoginExterno" asp-route-returnUrl="@Model.UrlRetorno">
+                        <div>
+                            @foreach(var provider in Model.LoginExternos)
+                            {
+                                <button type="submit" class="btn btn-primary" name="proveedor" value="@provider.Name"
+                                        title="Loguear usando @provider.DisplayName cuenta">
+                                    @provider.DisplayName
+                                </button>
+                            }
+                        </div>
+                    </form>
+                }
+            }
+
+        </div>
+    </div>
+
+
+Agrego el manejo en el controlador de cuando se loguea externamente
+
+*****************************************************************************************************************************
+AUTENTICACION CON FACEBOOK
+
+Al igual que no la de Google, con la de facebook hay que registrar la pagina para que permita hacer el login para eso hay
+que ir a la pagina de developer de facebook.
+Se click en empezar, desarrollador y crear nueva aplicacion, es bastante intuitivo, poner nombre y esas cosas.
+En el dashboard arriba muestra el numero de identificador, y en el centro las aplicaciones hay que configurar de la de 
+inicio de sesion con facebook, para este ejemplo es una aplicacion web, nos pide la url, que bueno es la del localhost
+puedo copiarla y pegarla cuando la inicio. Despues clickeo en configuracion a la izquierda y pongo la url de devolucion
+que es la url a donde va a ir despues de loguearse, https://localhost:44343/signin-facebook y guardar cambios.
+
+La clave secreta esta en configuracion - informacion basica
+
+Con el iidentificador y clave secreta como en google ya tenemos el identificador preparado para el login.
+
+Queda meter la logica en la aplicacion. Como en el video anterior ya hice la logica para que sea dinamica para cada metodo
+de login exterior no hay que hacer mucho. Solo agregar el nuevo identificador.
+
+En el startup del mismo modo que agruegue el de google agrego el de facebook. De seguro tengo que instalar
+Microsoft.AspNetCore.Authentication.Facebook con el nuget :
+
+                .AddFacebook(opciones =>
+                {
+                    opciones.AppId = "ID";
+                    opciones.AppSecret = "CLAVE SECRETA";
+                });
+
+**********************************************************************************************************************
+CONFIRMACION CORREO ELECTRONICO
+
+En el configureServices del startup agrego:
+    
+            //CONFIRMACION CORREO ELECTRONICO
+            services.AddIdentity<UsuarioAplicacion, IdentityRole>(
+                options =>
+                {
+                    options.SignIn.RequireConfirmedEmail = true;
+                }).AddErrorDescriber<ErroresCastellano>().
+                AddEntityFrameworkStores<AppDbContext>();
+
+
+Esto agrego el ExternalLoginCallback del cuentas controllers:
+            
+            //Obtengo el claim por correo electronico del proveedor de inicio de sesion externo(Google, Facebook, etc)
+            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+            UsuarioAplicacion usuario = null;
+
+            if(email != null)
+            {
+                //Buscamos el usuario
+                usuario = await gestionUsuarios.FindByEmailAsync(email);
+
+                //Si el mail no esta confirmado muestra el error en la login view
+                if (usuario != null && !usuario.EmailConfirmed)
+                {
+                    ModelState.AddModelError(string.Empty, "Email sin confirmar");
+                    return View("Login", loginViewModelo);
+                }
+            }
+
+En el metodo login del cuentas controller agrego: 
+    
+            model.LoginExternos = (await gestionLogin.GetExternalAuthenticationSchemesAsync()).ToList();
+
+
+            if(ModelState.IsValid)
+            {
+                var usuario = await gestionUsuarios.FindByEmailAsync(model.Email);
+
+                if(usuario != null && !usuario.EmailConfirmed &&
+                    (await gestionUsuarios.CheckPasswordAsync(usuario, model.Password))
+                {
+                    ModelState.AddModelError(string.Empty, "Email todavia no confirmado");
+                    return View(model);
+                }
+
+Basicamente lo que hace es traerse los metodos de login externos. Fijarse si el usuario existe y puso bien la contrase
+en caso de no tener confirmado el email muestra el error
+
+Para pedir confirmacion de correo durante el registro hago un token con el metodo que lo hace. Esto va en el metodo
+Registro:
+
+                    //TOKEN PARA CONFIRMACION DE MAIL
+                    var token = await gestionUsuarios.GenerateEmailConfirmationTokenAsync(usuario);
+
+                    var linkConfirmacion = "https://localhost:44338/Cuentas/ConfirmarEmail?UsuarioId=" + usuario.Id + "&token" + WebUtility.UrlDecode(token);
+
+                    log.Log(LogLevel.Error, linkConfirmacion);
+
+                    //Si el usuario es un administrador, una vez creado el usuario me manda de nuevo a la lista de gestion de usuarios
+                    if(gestionLogin.IsSignedIn(User) && User.IsInRole("Administrador"))
+                    {
+                        return RedirectToAction("ListaUsuarios", "Administracion");
+                    }
+
+
+                    ViewBag.ErrorTitle = "Registro Correcto";
+                    ViewBag.ErrorMessage = "Antes de iniciar sesion confirma el registro clickeando en el mail recibido";
+                    return View("Error");
+
+
+El metodo confirmarEmail:
+
+        //METODO CONFIRMAR EMEAIL
+        [AllowAnonymous]
+        [Route("Cuentas/ConfirmarEmail")]
+        public async Task<IActionResult> ConfirmarEmail(string usuarioId, string token)
+        {
+            if(usuarioId == null || token == null)
+            {
+                return RedirectToAction("index", "home");
+            }
+
+            var usuario = await gestionUsuarios.FindByIdAsync(usuarioId);
+            if(usuario == null)
+            {
+                ViewBag.ErrorMessage = $"El usuario con id {usuarioId} es invalido";
+                return View("ErrorGenerico");
+            }
+
+            var result = await gestionUsuarios.ConfirmEmailAsync(usuario, token);
+            if (result.Succeeded)
+            {
+                return View();
+            }
+
+            ViewBag.ErrorTitle = "El email no pudo ser confirmado";
+            return View("Error Generico");
+        }
+
+
+
+Error en core 3 https://forums.asp.net/t/2143174.aspx?Error+
+
+
+*************************************************************************************************************************
+RECORDATORIO CONTRASEÑA
+
+Al igual que el anterior el link de confirmacion en vez de enviarlo al mail lo guardo en un log porque no tiene smtp
+y no se va a poner a hacerlo.
+
+Agrego en el login un link a la action olvidoPassword:
+
+    <a asp-action="OlvidoPassword">Olvido la contraseña?</a>
+
+
+El viewModel para mostrar en su vista:
+
+    public class OlvidoPasswordViewModel
+    {
+        [Required(ErrorMessage = "Email Obligatorio")]
+        [EmailAddress]
+        public string Email { get; set; }
+    }
+
+
+Creo la vista OlvidoPassword.cshtml:
+    
+    @model OlvidoPasswordViewModel
+
+    <h2>Olvido Password</h2>
+
+    <hr />
+
+    <div class="row">
+        <div class="col-md-12">
+            <form method="post">
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+
+
+En CuentasController.cs hago los metodo GET y POST:
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("Cuentas/OlvidoPassword")]
+        public IActionResult OlvidoPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("Cuentas/OlvidoPassword")]
+        public async Task<IActionResult> OlvidoPassword(OlvidoPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                //Buscamos el usuario por el email
+                var usuario = await gestionUsuarios.FindByEmailAsync(model.Email);
+
+                //Si el usuario existe y el email esta confirmado
+                if(usuario != null && await gestionUsuarios.IsEmailConfirmedAsync(usuario))
+                {
+                    //Genero token de restablecimiento de contraseña
+                    var token = await gestionUsuarios.GeneratePasswordResetTokenAsync(usuario);
+
+                    //Hago el link para el reset
+                    var linkReseteaPass = "https://localhost:44338/Cuentas/ReseteaPassword?Email=" + model.Email + "&token=" + WebUtility.UrlEncode(token);
+
+                    //Lo guardo en el log para ver durante depuracion y copio y pego el link en el nav porque no
+                    //tengo smtp para estar enviando el link por email
+                    log.Log(LogLevel.Warning, linkReseteaPass);
+
+                    //Enviar al usuario a la vista de confirmacion de contraseña olvidada
+                    return View("OlvidoPasswordConfirmacion");
+                }
+
+                return View("OlvidoPasswordConfirmacion");
+            }
+
+            return View(model);
+        }
+
+
+La view OlvidoPasswordConfirmacion.cshtml tiene un mensaje solamente:
+
+    <h4>Se ha enviado un correo a su direccion con los pasos a seguir para reestablecer su contraseña</h4>
+
+
+Ahora cuando el usuario hace click en el enlace (o en mi caso despues copiar el enlace del log y pegarlo en el navegador)
+tiene que redirigir a algun metodo para resetear la password. Es lo que voy a hacer a continuacion en el CuentaController:
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("Cuentas/ReseteaPassword")]
+        public IActionResult ReseteaPassword(string token, string email)
+        {
+            if(token == null || email == null)
+            {
+                ModelState.AddModelError("", "Link desconocido");
+            }
+
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("Cuentas/ReseteaPassword")]
+        public async Task<IActionResult> ReseteaPassword(ResetPassViewModel model)
+        {
+            if(ModelState.IsValid)
+            {
+                var usuario = await gestionUsuarios.FindByEmailAsync(model.Email);
+
+                if(usuario != null)
+                {
+                    var resultado = await gestionUsuarios.ResetPasswordAsync(usuario, model.Token, model.Password);
+                    if(resultado.Succeeded)
+                    {
+                        return View("ResetearPasswordConfirmacion");
+                    }
+
+                    foreach(var error in resultado.Errors)
+                    {
+                        ModelState.AddModelError("", error.Description);
+                    }
+
+                    return View(model);
+                }
+
+                return View("ResetearPasswordConfirmacion");
+            }
+
+            return View(model);
+        }
+
+
+OBVIAMENTE ANTES TENGO QUE TENER EL VIEW MODEL:
+
+    public class ResetPassViewModel
+    {
+        [Required(ErrorMessage = "Email Obligatorio")]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage ="Obligatorio")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; }
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirmar Password")]
+        [Compare("Password", ErrorMessage ="Password y confirmacion deben ser iguales")]
+        public string ConfirmarPassword { get; set; }
+
+        public string Token { get; set; }
+    }
+
+Y LAS VIEWS:
+
+    @model ResetPassViewModel
+
+    <h2>Resetear Password</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-12">
+            <form method="post">
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <input asp-for="Token" type="hidden" />
+                <input asp-for="Email" type="hidden" />
+                <div class="form-group">
+                    <label asp-for="Password"></label>
+                    <input asp-for="Password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="ConfirmarPassword"></label>
+                    <input asp-for="ConfirmarPassword" class="form-control" />
+                    <span asp-validation-for="ConfirmarPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:auto">Resetear</button>
+            </form>
+        </div>
+    </div>
+
+
+ResetearPasswordConfirmacion.cshtml:
+
+    <h4>Su contraseña fue cambiada.
+    <a asp-action="Login">Login</a></h4>
+
+Y LISTO.
+
+*************************************************************************************************************************
+PENULTIMO VIDEO
+
+Hacer que el token tenga caducidad por defecto es un dia. En startup, con el mismo metodo 
+DataProtectionTokenProviderOptions lo hago:
+
+    services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(1));
+
+CIFRAR STRINGS, LO USA EN LA URL DE VER. Para eso crea la clase ProteccionStrings.cs:
+
+    public class ProteccionStrings
+    {
+        public readonly string AmigoIdRuta = "AmigoIdValorRuta";
+    }
+
+Agregamos el singleton en configureServices de Startup para poder usar la clase en los CONTROLADORES:
+    
+    services.AddSingleton<ProteccionStrings>();
+
+En la clase amigo agrego:
+        
+        [NotMapped]
+        public string IdEncriptado { get; set; }
+
+
+En el home controller hay mas cambios que tienen su comentario porque son varios y dispersos
+
+En el index saco esto: @model List<Amigo> y lo cambio por @model IEnumerable<Amigo> y en vez de id va idEncriptado en 
+el enlace al detail
+
+
+************************************************************************************************************************
+CAMBIAR CONTRASEÑA 
+
+Hago el viewModel:
+
+    public class CambioPasswordViewModel
+    {
+        [Required(ErrorMessage = "Obligatorio")]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password Actual")]
+        public string PasswordActual { get; set;}
+
+        [Required(ErrorMessage = "Obligatorio")]
+        [DataType(DataType.Password)]
+        [Display(Name = "Nueva Password")]
+        public string NuevaPassword { get; set; }
+
+        [DataType(DataType.Password)]
+        [Display(Name ="Confirmar Nueva Password")]
+        [Compare("Nueva Password", ErrorMessage ="La password no coincide")]
+        public string ConfirmarPassword { get; set; }
+    }
+
+Luego la view:
+
+    <h2>Cambiar Password</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-12">
+            <form method="post">
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label asp-for="PasswordActual"></label>
+                    <input asp-for="PasswordActual" class="form-control" />
+                    <span asp-validation-for="PasswordActual" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="NuevaPassword"></label>
+                    <input asp-for="NuevaPassword" class="form-control" />
+                    <span asp-validation-for="NuevaPassword" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="ConfirmarPassword"></label>
+                    <input asp-for="ConfirmarPassword" class="form-control" />
+                    <span asp-validation-for="ConfirmarPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:auto">Actualizar</button>
+            </form>
+        </div>
+    </div>
+
+La view cambiarPasswordConfirmacion:
+
+    <h4>Password cambiada correctamente</h4>
+
+Y los metodos en el cuenta controller:
+
+        [HttpGet]
+        [Route("Cuentas/CambiarPassword")]
+        public IActionResult CambiarPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [Route("Cuentas/CambiarPassword")]
+        public async Task<IActionResult> CambiarPassword(CambioPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var usuario = await gestionUsuarios.GetUserAsync(User);
+                if(usuario == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                //Cambia la contraseña usando el metodo ChangePasswordAsync
+                var result = await gestionUsuarios.ChangePasswordAsync(usuario,
+                    model.PasswordActual, model.NuevaPassword);
+
+                //Si la mueva contraseña no cumple con los requisitos o la contraseña actual es incorrecta
+                if (!result.Succeeded)
+                {
+                    foreach(var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                    return View();
+                }
+
+                //Al cambiar con exito la contraseña actualiza la cookie de inicio de sesion
+                await gestionLogin.RefreshSignInAsync(usuario);
+                return View("CambiarPasswordConfirmacion");
+            }
+
+            return View(model);
+        }
+    }
+
+
+Por ultimo en el layout.htmlcs su link:
+
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Cuentas"
+                           asp-action="CambiarPassword">
+                            Cambiar Password
+                        </a>
+                    </li>

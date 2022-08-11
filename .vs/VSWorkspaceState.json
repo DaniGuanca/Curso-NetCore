@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\Ejemplo1",
+    "\\Ejemplo1\\Ejemplo1",
+    "\\Ejemplo1\\Ejemplo1AccesoDatos\\bin",
+    "\\Ejemplo1\\Ejemplo1AccesoDatos\\bin\\Debug",
+    "\\Ejemplo1\\Ejemplo1AccesoDatos\\bin\\Release",
+    "\\Ejemplo1\\Ejemplo1AccesoDatos\\obj",
+    "\\Ejemplo1\\Ejemplo1AccesoDatos\\obj\\Debug",
+    "\\Ejemplo1\\Ejemplo1AccesoDatos\\obj\\Debug\\netstandard2.0",
+    "\\Ejemplo1\\Ejemplo1\\Controllers"
+  ],
+  "SelectedNode": "\\Ejemplo1\\Ejemplo1\\Explicacion.txt",
+  "PreviewInSolutionExplorer": false
+}

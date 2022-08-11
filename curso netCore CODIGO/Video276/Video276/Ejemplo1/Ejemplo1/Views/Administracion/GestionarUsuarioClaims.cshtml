@@ -1,0 +1,28 @@
+﻿@model UsuarioClaimsViewModel
+
+<form method="post">
+    <div class="card">
+        <div class="card-header">
+            <h2>Gestionar claims de usuario</h2>
+        </div>
+        <div class="card-body">
+            @for (int i = 0; i < Model.Claims.Count; i++)
+            {
+                <div class="form-check m-1">
+                    <input type="hidden" asp-for="@Model.Claims[i].tipoClaim" />
+                    <input asp-for="@Model.Claims[i].estaSeleccioando" class="form-check-input" />
+                    <label class="form-check-label" asp-for="@Model.Claims[i].estaSeleccioando">
+                        @Model.Claims[i].tipoClaim
+                    </label>
+                </div>
+            }
+            <div asp-validation-summary="All" class="text-danger"></div>
+        </div>
+        <div class="card-footer">
+            <input type="submit" value="Actualizar" class="btn btn-primary"
+                   style="width:auto" />
+            <a asp-action="EditarUsuario" asp-route-id="@Model.idUsuario"
+               class="btn btn-primary" style="width:auto">Cancelar</a>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,51 @@
+﻿<!--TERCER METODO, EL MAS USADO, VISTA FUERTEMENTE TIPADO. ACA LLAMO AL MODELO -->
+@model Ejemplo1.Models.Amigo
+
+<hmtl>
+    <head>
+    </head>
+    <body>
+        <h3>@ViewData["Cabecera"]</h3>
+        @{
+            //El as y la referencia del modelo es como el using sino no sabe que agarra
+            var amigo = ViewData["Amigo"] as Ejemplo1.Models.Amigo;
+        }
+        <div>
+            Nombre: @amigo.Nombre
+        </div>
+        <div>
+            Email: @amigo.Email
+        </div>
+        <div>
+            Ciudad: @amigo.Ciudad
+        </div>
+
+
+        <h3>@ViewBag.Titulo</h3>
+        <!-- NO HACE FALTA HACER EL CASTING COMO ARRIBA CON as, DIRECTAMENTE ENTRO COMO UN OBJETO A SUS PROPIEDADES-->
+        <div>
+            Nombre: @ViewBag.Amigo.Nombre
+        </div>
+        <div>
+            Email: @ViewBag.Amigo.Email
+        </div>
+        <div>
+            Ciudad: @ViewBag.Amigo.Ciudad
+        </div>
+
+
+        <h3>FUERTEMENTE TIPADO</h3>
+       
+        <div>
+            Nombre: @Model.Nombre
+        </div>
+        <div>
+            Email: @Model.Email
+        </div>
+        <div>
+            Ciudad: @Model.Ciudad
+        </div>
+
+
+    </body>
+</hmtl>

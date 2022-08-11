@@ -1,0 +1,44 @@
+﻿@model DetallesView
+
+@{
+    ViewBag.Title = "Amigos Detalles";
+    //El operador de uso combinado de NULL ?? devuelve el valor del operando izquierdo si no es null; en caso contrario, 
+    //evalúa el operando derecho y devuelve su resultado. 
+    var rutaFoto =  "~/images/" + (Model.amigo.rutaFoto ?? "ChicaCodigo.jpg");
+
+    
+
+}
+
+
+    <div class="row justify-content-center m-3">
+        <div class="col-sm-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1>@Model.amigo.Nombre</h1>
+                </div>
+
+                <div class="card-body text-center">
+                    <img class="card-img-top" src="@rutaFoto" asp-append-version="true" />
+              
+                    <h4>Amigo ID : @Model.amigo.Id</h4>
+                    <h4>Email:  @Model.amigo.Email</h4>
+                    <h4>Ciudad: @Model.amigo.Ciudad</h4>
+
+                </div>
+                <div class="card-footer text-center">
+                    <a href="~/Home/Index" class="btn btn-primary">Volver</a>
+                    <a asp-controller="home" asp-action="edit" asp-route-id="@Model.amigo.Id" class="btn btn-primary m-1">Editar</a>
+                    <a href="#" class="btn btn-danger">Borrar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+@section  Scripts
+{
+    <script src="~/js/MiScript.js"></script>
+}
+
+

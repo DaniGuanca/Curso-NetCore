@@ -1,0 +1,22 @@
+﻿@model Ejemplo1.ViewModels.DetailsView
+
+@{
+    ViewBag.Title = "Amigos Detalles";
+}
+
+<h2>@Model.Titulo</h2>
+<h3>@Model.Subtitulo</h3>
+<div>
+    Nombre: @Model.amigo.Nombre
+</div>
+<div>
+    Email: @Model.amigo.Email
+</div>
+<div>
+    Ciudad: @Model.amigo.Ciudad
+</div>
+
+@section Scripts
+{
+    <script src="~/js/MiScript.js"></script>
+}

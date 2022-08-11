@@ -1,0 +1,5 @@
+D:\Videos\Ejemplos codigo\NetCore\Ejemplo1\Ejemplo1AccesoDatos\bin\Debug\netstandard2.1\Ejemplo1AccesoDatos.deps.json
+D:\Videos\Ejemplos codigo\NetCore\Ejemplo1\Ejemplo1AccesoDatos\bin\Debug\netstandard2.1\Ejemplo1AccesoDatos.dll
+D:\Videos\Ejemplos codigo\NetCore\Ejemplo1\Ejemplo1AccesoDatos\obj\Debug\netstandard2.1\Ejemplo1AccesoDatos.csprojAssemblyReference.cache
+D:\Videos\Ejemplos codigo\NetCore\Ejemplo1\Ejemplo1AccesoDatos\obj\Debug\netstandard2.1\Ejemplo1AccesoDatos.AssemblyInfoInputs.cache
+D:\Videos\Ejemplos codigo\NetCore\Ejemplo1\Ejemplo1AccesoDatos\obj\Debug\netstandard2.1\Ejemplo1AccesoDatos.AssemblyInfo.cs

@@ -1,0 +1,126 @@
+﻿@inject SignInManager<UsuarioAplicacion> SignInManager
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    <link href="~/css/sitio.css" rel="stylesheet" />
+    <script src="~/lib/jquery/jquery.js"></script>
+    <script src="~/lib/twitter-bootstrap/js/bootstrap.js"></script>
+    <script src="~/lib/jquery-validate/jquery.validate.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js"></script>
+    <!--Con enviroment include en development quiere decir que esa linea se va a ejecutar solo cuando este en ambiente de desarrollo
+        puedo ponerla en stagin o produccion segun desee-->
+    <environment include="Development">
+        <link href="~/lib/twitter-bootstrap/css/bootstrap.css" rel="stylesheet" />
+    </environment>
+
+    <!--Si el entorno NO es desarrollo-->
+    <environment exclude="Development">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" 
+              integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous"
+              asp-fallback-href="~/lib/twitter-bootstrap/css/bootstrap.css"
+              asp-fallback-test-class="sr-only"
+              asp-fallback-test-property="position"
+              asp-fallback-test-value="absolute"
+              asp-suppress-fallback-integrity="true"      
+        />
+    </environment>
+
+</head>
+<body>
+
+    <div class="container">
+        <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+            <a class="navbar-brand" asp-controller="home" asp-action="index">
+                <img src="~/images/Dino.png" width="30" height="30" />
+            </a>
+
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="home" asp-action="index">Listado</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="home" asp-action="create">Crear</a>
+                    </li>
+
+                    @if (SignInManager.IsSignedIn(User) && ( User.IsInRole("Administrador") || User.IsInRole("Dios")))
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Gestion
+                            </a>
+
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                                <a class="dropdown-item" asp-controller="Administracion"
+                                   asp-action="ListaUsuarios">Usuarios</a>
+
+                                <a class="dropdown-item" asp-controller="Administracion"
+                                   asp-action="ListaRoles">Roles</a>
+                            </div>
+                        </li>
+
+                    }
+
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Cuentas"
+                           asp-action="CambiarPassword">
+                            Cambiar Password
+                        </a>
+                    </li>
+
+                </ul>
+
+
+                <ul class="navbar-nav ml-auto">
+
+                    <!--Si el usuario esta logueado hago que aparezca el link de cerrar sesion-->
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        //Hago un form que cuando haga click en cerrar sesion tire un post asi cierro la sesion en el controlador
+                        <li class="nav-item">
+                            <form method="post" asp-controller="Cuentas" asp-action="CerrarSesion">
+                                <button type="submit" style="width:auto" class="nav-link btn btn-link py-0">
+                                    Logout @User.Identity.Name
+                                </button>
+                            </form>
+
+                        </li>
+
+                    }
+                    else
+                    {
+
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Cuentas" asp-action="Registro">
+                                Registro
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Cuentas" asp-action="Login">
+                                Login
+                            </a>
+                        </li>
+
+                    }
+                </ul>
+            </div>
+        </nav>
+
+        <div>
+            @RenderBody()
+        </div>
+
+        @RenderSection("Scripts", required: false)
+    </div>
+</body>
+</html>
